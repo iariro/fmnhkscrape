@@ -16,6 +16,8 @@ with open(r'..\FUSIONGOL\private\web\fmnhk\fmnhk.html', mode='w') as file:
 	file.write("<link rel='stylesheet' type='text/css' href='hatena.css'>")
 	file.write("</head>")
 	file.write("<body>")
+	file.write("<div class=hatena-body>")
+	file.write("<div class=main>")
 
 	keywords = ["交響曲","受難曲","ドイツ・レクイエム","オネゲル","シェーンベルク","ストラヴィンスキー","ヒナステラ","ライヒ","ラヴェル","ジプシー","ジョエル","スキャッグス","ストラトヴァリウス","マルムスティーン","バルトーク","メシアン","ショスタコーヴィチ"]
 	for keyword in keywords:
@@ -36,10 +38,9 @@ with open(r'..\FUSIONGOL\private\web\fmnhk\fmnhk.html', mode='w') as file:
 				lastelement = element
 
 		file.write("<h1>%s</h1>\n" % (keyword))
+		file.write("<div class=day>")
 
 		for programurl in programurls:
-			file.write("<div class=hatena-body>")
-			file.write("<div class=main>")
 			file.write("<h2>%s</h2>\n" % (programurl["title"]))
 			html = urllib.request.urlopen("http://www2.nhk.or.jp/hensei/program/" + programurl["url"])
 			soup = BeautifulSoup(html, "html.parser")
@@ -62,9 +63,13 @@ with open(r'..\FUSIONGOL\private\web\fmnhk\fmnhk.html', mode='w') as file:
 									for line2 in composition:
 										file.write("%s<br>\n" % (line2))
 								composition = []
+		file.write("</div>")
 
-			file.write("</div>")
-			file.write("</div>")
+	file.write("<br>")
+	file.write(datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S"))
+	file.write("<br>")
 
+	file.write("</div>")
+	file.write("</div>")
 	file.write("</body>")
 	file.write("</html>")
