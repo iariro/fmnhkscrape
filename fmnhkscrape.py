@@ -40,7 +40,11 @@ with open(r'..\FUSIONGOL\private\web\fmnhk\fmnhk.html', mode='w') as file:
 		file.write("<h1>%s</h1>\n" % (keyword))
 		file.write("<div class=day>")
 
+		# 番組のループ
 		for programurl in programurls:
+			if '名曲スケッチ' in programurl["title"]:
+				continue
+
 			file.write("<h2>%s</h2>\n" % (programurl["title"]))
 			html = urllib.request.urlopen("http://www2.nhk.or.jp/hensei/program/" + programurl["url"])
 			soup = BeautifulSoup(html, "html.parser")
