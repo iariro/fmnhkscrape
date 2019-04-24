@@ -44,6 +44,8 @@ with open(r'..\FUSIONGOL\private\web\hobby\fmnhk\fmnhk.html', mode='w') as file:
 		for programurl in programurls:
 			if '名曲スケッチ' in programurl["title"]:
 				continue
+			if '名曲の小箱' in programurl["title"]:
+				continue
 
 			file.write("<h2>%s</h2>\n" % (programurl["title"]))
 			html = urllib.request.urlopen("http://www2.nhk.or.jp/hensei/program/" + programurl["url"])
