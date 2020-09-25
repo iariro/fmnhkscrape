@@ -6,11 +6,15 @@ import urllib.parse
 import urllib.request as urllib2
 from bs4 import BeautifulSoup
 
+headers = {
+        "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:47.0) Gecko/20100101 Firefox/47.0"
+        }
+
 nowyear = datetime.date.today().year
 nowyear1 = "%s" % (nowyear)
 nowyear2 = "%s" % (nowyear + 1)
 
-with open(r'..\FUSIONGOL\private\web\hobby\fmnhk\fmnhk.html', mode='w') as file:
+with open(r'..\..\FUSIONGOL\private\web\hobby\fmnhk\fmnhk.html', mode='w') as file:
 	file.write("<html>")
 	file.write("<head>")
 	file.write("<link rel='stylesheet' type='text/css' href='hatena.css'>")
@@ -22,10 +26,11 @@ with open(r'..\FUSIONGOL\private\web\hobby\fmnhk\fmnhk.html', mode='w') as file:
 	keywords = ["交響曲","受難曲","ドイツ・レクイエム","オネゲル","シェーンベルク","ストラヴィンスキー","ヒナステラ","ライヒ","ラヴェル","ジプシー","ジョエル","スキャッグス","ストラトヴァリウス","マルムスティーン","バルトーク","メシアン","ショスタコーヴィチ"]
 	for keyword in keywords:
 		# アクセスするURL
-		topurl = "http://www2.nhk.or.jp/hensei/program/query.cgi?f=kwd&area=001&qt=%s" % (urllib.parse.quote(keyword))
+		topurl = "https://www2.nhk.or.jp/hensei/program/query.cgi?f=kwd&area=001&qt=%s" % (urllib.parse.quote(keyword))
 
 		print(topurl)
-		html = urllib.request.urlopen(topurl)
+		request = urllib.request.Request(topurl, headers=headers)
+		html = urllib.request.urlopen(request)
 		soup = BeautifulSoup(html, "html.parser")
 		alltd = soup.find_all('td')
 
@@ -48,7 +53,8 @@ with open(r'..\FUSIONGOL\private\web\hobby\fmnhk\fmnhk.html', mode='w') as file:
 				continue
 
 			file.write("<h2>%s</h2>\n" % (programurl["title"]))
-			html = urllib.request.urlopen("http://www2.nhk.or.jp/hensei/program/" + programurl["url"])
+			request2 = urllib.request.Request("http://www2.nhk.or.jp/hensei/program/" + programurl["url"], headers=headers)
+			html = urllib.request.urlopen(request2)
 			soup = BeautifulSoup(html, "html.parser")
 
 			composition = []
