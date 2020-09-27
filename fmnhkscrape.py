@@ -14,7 +14,7 @@ nowyear = datetime.date.today().year
 nowyear1 = "%s" % (nowyear)
 nowyear2 = "%s" % (nowyear + 1)
 
-with open(r'..\..\FUSIONGOL\private\web\hobby\fmnhk\fmnhk.html', mode='w') as file:
+with open(r'..\FUSIONGOL\private\web\hobby\fmnhk\fmnhk.html', mode='w') as file:
 	file.write("<html>")
 	file.write("<head>")
 	file.write("<link rel='stylesheet' type='text/css' href='hatena.css'>")
