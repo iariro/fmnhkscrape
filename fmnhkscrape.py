@@ -1,22 +1,25 @@
-# coding: UTF-8
+#!/usr/bin/python3
+
 import datetime
 import re
 import urllib
 import urllib.parse
 import urllib.request as urllib2
 from bs4 import BeautifulSoup
+from ftplib import FTP
 
-headers = {
-        "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:47.0) Gecko/20100101 Firefox/47.0"
-        }
+def find_and_create_html(file):
+	headers = {
+			"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:47.0) Gecko/20100101 Firefox/47.0"
+			}
 
-nowyear = datetime.date.today().year
-nowyear1 = "%s" % (nowyear)
-nowyear2 = "%s" % (nowyear + 1)
+	nowyear = datetime.date.today().year
+	nowyear1 = "%s" % (nowyear)
+	nowyear2 = "%s" % (nowyear + 1)
 
-with open(r'..\FUSIONGOL\private\web\hobby\fmnhk\fmnhk.html', mode='w') as file:
 	file.write("<html>")
 	file.write("<head>")
+	file.write("<meta http-equiv='Content-Type' content='text/html; charset=UTF-8'>")
 	file.write("<link rel='stylesheet' type='text/css' href='hatena.css'>")
 	file.write("</head>")
 	file.write("<body>")
@@ -28,7 +31,6 @@ with open(r'..\FUSIONGOL\private\web\hobby\fmnhk\fmnhk.html', mode='w') as file:
 		# アクセスするURL
 		topurl = "https://www2.nhk.or.jp/hensei/program/query.cgi?f=kwd&area=001&qt=%s" % (urllib.parse.quote(keyword))
 
-		print(topurl)
 		request = urllib.request.Request(topurl, headers=headers)
 		html = urllib.request.urlopen(request)
 		soup = BeautifulSoup(html, "html.parser")
@@ -85,3 +87,16 @@ with open(r'..\FUSIONGOL\private\web\hobby\fmnhk\fmnhk.html', mode='w') as file:
 	file.write("</div>")
 	file.write("</body>")
 	file.write("</html>")
+
+if __name__ == '__main__':
+	with open('fmnhk.html', mode='w') as file:
+		find_and_create_html(file)
+
+	FTP.encoding = "utf-8"
+
+	# FTP接続.
+	ftp = FTP("www2.gol.com", "ip0601170243", passwd="Z#5uqBpt")
+
+	# ファイルのアップロード（テキスト）.
+	with open("fmnhk.html", "rb") as f:  # 注意：バイナリーモード(rb)で開く必要がある
+		ftp.storlines("STOR /private/web/hobby/fmnhk/fmnhk.html", f)
