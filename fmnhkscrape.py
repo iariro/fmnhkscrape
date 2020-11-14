@@ -18,62 +18,66 @@ def find_program(keywords):
 
     all_results = []
     for keyword in keywords:
-        # アクセスするURL
-        topurl = "https://www2.nhk.or.jp/hensei/program/query.cgi?f=kwd&area=001&qt=%s"
-        topurl = topurl % (urllib.parse.quote(keyword))
+        try:
+            # アクセスするURL
+            topurl = "https://www2.nhk.or.jp/hensei/program/query.cgi?f=kwd&area=001&qt=%s"
+            topurl = topurl % (urllib.parse.quote(keyword))
 
-        request = urllib.request.Request(topurl, headers=headers)
-        html = urllib.request.urlopen(request)
-        soup = BeautifulSoup(html, "html.parser")
-        alltd = soup.find_all('td')
-
-        programurls = []
-        lastelement = None
-        for td in alltd:
-            for element in td.children:
-                if lastelement == "FM" and element.name == "a":
-                    programurls.append({"url": element.get("href"),
-                                        "title": "%s" % element.contents[0].replace("\xa0", "")})
-                lastelement = element
-
-        results = []
-        all_results.append({'keyword': keyword, 'result': results})
-
-        # 番組のループ
-        for programurl in programurls:
-            if '名曲スケッチ' in programurl["title"]:
-                continue
-            if '名曲の小箱' in programurl["title"]:
-                continue
-
-            result = {'title': programurl["title"], 'text': []}
-            results.append(result)
-            programurl2 = "http://www2.nhk.or.jp/hensei/program/" + programurl["url"]
-            request2 = urllib.request.Request(programurl2, headers=headers)
-            html = urllib.request.urlopen(request2)
+            request = urllib.request.Request(topurl, headers=headers)
+            html = urllib.request.urlopen(request)
             soup = BeautifulSoup(html, "html.parser")
+            alltd = soup.find_all('td')
 
-            composition = []
+            programurls = []
+            lastelement = None
+            for td in alltd:
+                for element in td.children:
+                    if lastelement == "FM" and element.name == "a":
+                        programurls.append({"url": element.get("href"),
+                                            "title": element.contents[0].replace("\xa0", "")})
+                    lastelement = element
 
-            for dd in soup.find_all('dd'):
-                for element in dd.children:
-                    lines = ("%s" % (element)).split("<br/>")
-                    for line in lines:
-                        if nowyear1 in line or nowyear2 in line:
-                            result['text'].append(line.strip())
-                        else:
-                            if re.match("「.*", line) or "作曲" in line:
-                                composition.append(line)
+            results = []
+            all_results.append({'keyword': keyword, 'result': results})
 
-                            if "作曲" in line:
-                                if len([line2 for line2 in composition if keyword in line2]) > 0:
-                                    for line2 in composition:
-                                        result['text'].append(line2)
-                                composition = []
+            # 番組のループ
+            for programurl in programurls:
+                if '名曲スケッチ' in programurl["title"]:
+                    continue
+                if '名曲の小箱' in programurl["title"]:
+                    continue
+
+                result = {'title': programurl["title"], 'text': []}
+                results.append(result)
+                programurl2 = "http://www2.nhk.or.jp/hensei/program/" + programurl["url"]
+                request2 = urllib.request.Request(programurl2, headers=headers)
+                html = urllib.request.urlopen(request2)
+                soup = BeautifulSoup(html, "html.parser")
+
+                composition = []
+
+                for dd in soup.find_all('dd'):
+                    for element in dd.children:
+                        lines = ("%s" % (element)).split("<br/>")
+                        for line in lines:
+                            if nowyear1 in line or nowyear2 in line:
+                                result['text'].append(line.strip())
+                            else:
+                                if re.match("「.*", line) or "作曲" in line:
+                                    composition.append(line)
+
+                                if "作曲" in line:
+                                    if len([c for c in composition if keyword in c]) > 0:
+                                        for c in composition:
+                                            result['text'].append(c)
+                                    composition = []
+        except Exception:
+            pass
+
     return all_results
 
-def create_html(all_results):
-    with open('fmnhk.html', mode='w') as file:
+def create_html(all_results, output):
+    with open(output, mode='w') as file:
         file.write("<html>")
         file.write("<head>")
         file.write("<meta http-equiv='Content-Type' content='text/html; charset=UTF-8'>")
@@ -108,8 +112,9 @@ if __name__ == '__main__':
                 "ジプシー", "ジョエル", "スキャッグス", "ストラトヴァリウス", "マルムスティーン",
                 "バルトーク", "メシアン", "ショスタコーヴィチ"]
 
+    output = '/home/pi/ドキュメント/python/fmnhkscrape/fmnhk.html'
     results = find_program(keywords)
-    create_html(results)
+    create_html(results, output)
 
     FTP.encoding = "utf-8"
 
@@ -117,5 +122,5 @@ if __name__ == '__main__':
     ftp = FTP("www2.gol.com", "ip0601170243", passwd="Z#5uqBpt")
 
     # ファイルのアップロード（テキスト）.
-    with open("fmnhk.html", "rb") as f:  # 注意：バイナリーモード(rb)で開く必要がある
+    with open(output, "rb") as f:  # 注意：バイナリーモード(rb)で開く必要がある
         ftp.storlines("STOR /private/web/hobby/fmnhk/fmnhk.html", f)
