@@ -112,7 +112,8 @@ if __name__ == '__main__':
                 "ジプシー", "ジョエル", "スキャッグス", "ストラトヴァリウス", "マルムスティーン",
                 "バルトーク", "メシアン", "ショスタコーヴィチ"]
 
-    output = '/home/pi/ドキュメント/python/fmnhkscrape/fmnhk.html'
+    output = '/home/pi/doc/private/python/fmnhkscrape/fmnhk.html'
+
     results = find_program(keywords)
     create_html(results, output)
 
