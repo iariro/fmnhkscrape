@@ -1,14 +1,62 @@
 #!/usr/bin/python3
 
 import datetime
+from time import sleep
 import re
 import urllib
 import urllib.parse
 import urllib.request
+import bs4
 from bs4 import BeautifulSoup
 from ftplib import FTP
+from selenium.webdriver import Chrome, ChromeOptions
+from selenium.webdriver.common.keys import Keys
 
-def find_program(keywords):
+def get_program_information(url):
+    options = ChromeOptions()
+    options.add_argument('--headless')
+    driver = Chrome(options=options)
+
+    driver.get(url)
+
+    sleep(5)
+
+    contents = []
+    content = {}
+    contents.append(content)
+    html = driver.page_source.encode('utf-8')
+    soup = BeautifulSoup(html, "html.parser")
+    areas = soup.select("section[class='program-area']")
+    for onair in areas[0].select("div[class='program-title-area']"):
+        program_time = onair.select_one("div[class='program-time large']")
+        program_time = program_time.select("time")
+        content['start_time'] = program_time[0]['datetime']
+        content['end_time'] = program_time[1]['datetime']
+    content['text'] = []
+    desc = areas[0].select_one("div[class='program-description col-12']")
+    for p in desc.select("p")[1]:
+        if isinstance(p, bs4.element.NavigableString):
+            content['text'].append(p)
+
+    content = {}
+    contents.append(content)
+    onair = areas[1].select("section[class='program-onair clear']")
+    onair += areas[1].select("section[class='program-onair']")
+    for onair in onair:
+        program_time = onair.select_one("div[class='program-time medium']")
+        program_time = program_time.select("time")
+        content['start_time'] = program_time[0]['datetime']
+        content['end_time'] = program_time[1]['datetime']
+        content['text'] = []
+        for music in onair.select("div[class='program-onair-music']"):
+            for li in music.find("li"):
+                if isinstance(li, bs4.element.NavigableString):
+                    content['text'].append(li)
+    driver.close()
+    driver.quit()
+    return contents
+
+def find_program_2020(keywords):
     user_agent = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:47.0) Gecko/20100101 Firefox/47.0"
     headers = {"User-Agent": user_agent}
 
@@ -87,6 +135,9 @@ def create_html(all_results, output):
         file.write("<div class=hatena-body>")
         file.write("<div class=main>")
 
+        file.write(datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S"))
+        file.write("<br>")
+
         for results in all_results:
             file.write("<h1>%s</h1>\n" % (results['keyword']))
             file.write("<div class=day>")
@@ -96,8 +147,6 @@ def create_html(all_results, output):
                     file.write("%s<br>\n" % (line))
             file.write("</div>")
 
-        file.write("<br>")
-        file.write(datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S"))
         file.write("<br>")
 
         file.write("</div>")
@@ -114,7 +163,24 @@ if __name__ == '__main__':
 
     output = '/home/pi/doc/private/python/fmnhkscrape/fmnhk.html'
 
-    results = find_program(keywords)
+    urls = [{ 'title': 'ブラボー！オーケストラ', 'url': 'https://www4.nhk.or.jp/bravo/'},
+            { 'title': 'クラシックカフェ', 'url': 'https://www4.nhk.or.jp/c-cafe/'},
+            { 'title': 'ベストオブクラシック', 'url': 'https://www4.nhk.or.jp/bescla/' }]
+    contents = {}
+    for url in urls:
+        contents[url['title']] = get_program_information(url['url'])
+    results = []
+    for keyword in keywords:
+        result = {'keyword': keyword, 'result': []}
+        results.append(result)
+        for title, content in contents.items():
+            for content2 in content:
+                if len([line for line in content2['text'] if keyword in line]) > 0:
+                    title2 = '%s %s-%s' % (title,
+                                           content2['start_time'].replace('-', '/'),
+                                           content2['end_time'].replace('-', '/'))
+                    result['result'].append({'title': title2, 'text': content2['text']})
+
     create_html(results, output)
 
     FTP.encoding = "utf-8"
@@ -123,5 +189,5 @@ if __name__ == '__main__':
     ftp = FTP("www2.gol.com", "ip0601170243", passwd="Z#5uqBpt")
 
     # ファイルのアップロード（テキスト）.
-    with open(output, "rb") as f:  # 注意：バイナリーモード(rb)で開く必要がある
+    with open(output, "rb") as f:
         ftp.storlines("STOR /private/web/hobby/fmnhk/fmnhk.html", f)
