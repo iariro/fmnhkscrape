@@ -34,9 +34,10 @@ def get_program_information(url):
         content['end_time'] = program_time[1]['datetime']
     content['text'] = []
     desc = areas[0].select_one("div[class='program-description col-12']")
-    for p in desc.select("p")[1]:
-        if isinstance(p, bs4.element.NavigableString):
-            content['text'].append(p)
+    if desc is not None:
+        for p in desc.select("p")[1]:
+            if isinstance(p, bs4.element.NavigableString):
+                content['text'].append(p)
 
     content = {}
     contents.append(content)
