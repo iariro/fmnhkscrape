@@ -37,7 +37,10 @@ def get_program_information(url):
     if desc is not None:
         for p in desc.select("p")[1]:
             if isinstance(p, bs4.element.NavigableString):
-                content['text'].append(p)
+                line = str(p)
+                if not line.startswith('「') and not line.endswith('作曲'):
+                    line = '　' + line
+                content['text'].append(line)
 
     content = {}
     contents.append(content)
@@ -52,7 +55,10 @@ def get_program_information(url):
         for music in onair.select("div[class='program-onair-music']"):
             for li in music.find("li"):
                 if isinstance(li, bs4.element.NavigableString):
-                    content['text'].append(li)
+                    line = str(li)
+                    if not line.startswith('「') and not line.endswith('作曲'):
+                        line = '　' + line
+                    content['text'].append(line)
     driver.close()
     driver.quit()
     return contents
@@ -159,7 +165,6 @@ def create_html(all_results, output):
 if __name__ == '__main__':
     keywords = ["交響曲", "受難曲", "ドイツ・レクイエム",
                 "オネゲル", "シェーンベルク", "ストラヴィンスキー", "ヒナステラ", "ライヒ", "ラヴェル",
-                "ジプシー", "ジョエル", "スキャッグス", "ストラトヴァリウス", "マルムスティーン",
                 "バルトーク", "メシアン", "ショスタコーヴィチ"]
 
     output = '/home/pi/doc/private/python/fmnhkscrape/fmnhk.html'
