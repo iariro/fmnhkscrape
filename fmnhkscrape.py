@@ -30,8 +30,8 @@ def get_program_information(url):
     for onair in areas[0].select("div[class='program-title-area']"):
         program_time = onair.select_one("div[class='program-time large']")
         program_time = program_time.select("time")
-        content['start_time'] = program_time[0]['datetime']
-        content['end_time'] = program_time[1]['datetime']
+        content['start_time'] = program_time[0]['datetime'][0:-3]
+        content['end_time'] = program_time[1]['datetime'][-8:-3]
     content['text'] = []
     desc = areas[0].select_one("div[class='program-description col-12']")
     if desc is not None:
@@ -49,8 +49,8 @@ def get_program_information(url):
     for onair in onair:
         program_time = onair.select_one("div[class='program-time medium']")
         program_time = program_time.select("time")
-        content['start_time'] = program_time[0]['datetime']
-        content['end_time'] = program_time[1]['datetime']
+        content['start_time'] = program_time[0]['datetime'][0:-3]
+        content['end_time'] = program_time[1]['datetime'][-8:-3]
         content['text'] = []
         for music in onair.select("div[class='program-onair-music']"):
             for li in music.find("li"):
