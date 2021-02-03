@@ -44,21 +44,22 @@ def get_program_information(url):
 
     content = {}
     contents.append(content)
-    onair = areas[1].select("section[class='program-onair clear']")
-    onair += areas[1].select("section[class='program-onair']")
-    for onair in onair:
-        program_time = onair.select_one("div[class='program-time medium']")
-        program_time = program_time.select("time")
-        content['start_time'] = program_time[0]['datetime'][0:-3]
-        content['end_time'] = program_time[1]['datetime'][-8:-3]
-        content['text'] = []
-        for music in onair.select("div[class='program-onair-music']"):
-            for li in music.find("li"):
-                if isinstance(li, bs4.element.NavigableString):
-                    line = str(li)
-                    if not line.startswith('「') and not line.endswith('作曲'):
-                        line = '　' + line
-                    content['text'].append(line)
+    if len(areas) >= 2:
+        onair = areas[1].select("section[class='program-onair clear']")
+        onair += areas[1].select("section[class='program-onair']")
+        for onair in onair:
+            program_time = onair.select_one("div[class='program-time medium']")
+            program_time = program_time.select("time")
+            content['start_time'] = program_time[0]['datetime'][0:-3]
+            content['end_time'] = program_time[1]['datetime'][-8:-3]
+            content['text'] = []
+            for music in onair.select("div[class='program-onair-music']"):
+                for li in music.find("li"):
+                    if isinstance(li, bs4.element.NavigableString):
+                        line = str(li)
+                        if not line.startswith('「') and not line.endswith('作曲'):
+                            line = '　' + line
+                        content['text'].append(line)
     driver.close()
     driver.quit()
     return contents
