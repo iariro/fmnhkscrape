@@ -182,11 +182,12 @@ if __name__ == '__main__':
         results.append(result)
         for title, content in contents.items():
             for content2 in content:
-                if len([line for line in content2['text'] if keyword in line]) > 0:
-                    title2 = '%s %s-%s' % (title,
-                                           content2['start_time'].replace('-', '/'),
-                                           content2['end_time'].replace('-', '/'))
-                    result['result'].append({'title': title2, 'text': content2['text']})
+                if 'text' in content2:
+                    if len([line for line in content2['text'] if keyword in line]) > 0:
+                        title2 = '%s %s-%s' % (title,
+                                               content2['start_time'].replace('-', '/'),
+                                               content2['end_time'].replace('-', '/'))
+                        result['result'].append({'title': title2, 'text': content2['text']})
 
     create_html(results, output)
 
