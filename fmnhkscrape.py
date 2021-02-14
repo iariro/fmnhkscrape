@@ -29,6 +29,8 @@ def get_program_information(url):
     areas = soup.select("section[class='program-area']")
     for onair in areas[0].select("div[class='program-title-area']"):
         program_time = onair.select_one("div[class='program-time large']")
+        if program_time is None:
+            continue
         program_time = program_time.select("time")
         content['start_time'] = program_time[0]['datetime'][0:-3]
         content['end_time'] = program_time[1]['datetime'][-8:-3]
