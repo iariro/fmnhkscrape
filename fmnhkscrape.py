@@ -37,12 +37,14 @@ def get_program_information(url):
     content['text'] = []
     desc = areas[0].select_one("div[class='program-description col-12']")
     if desc is not None:
-        for p in desc.select("p")[1]:
-            if isinstance(p, bs4.element.NavigableString):
-                line = str(p)
-                if not line.startswith('「') and not line.endswith('作曲'):
-                    line = '　' + line
-                content['text'].append(line)
+        pp = desc.select("p")
+        if len(pp) >= 2:
+            for p in pp[1]:
+                if isinstance(p, bs4.element.NavigableString):
+                    line = str(p)
+                    if not line.startswith('「') and not line.endswith('作曲'):
+                        line = '　' + line
+                    content['text'].append(line)
 
     content = {}
     contents.append(content)
