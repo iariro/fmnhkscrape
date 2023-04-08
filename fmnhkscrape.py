@@ -27,24 +27,25 @@ def get_program_information(url):
     html = driver.page_source.encode('utf-8')
     soup = BeautifulSoup(html, "html.parser")
     areas = soup.select("section[class='program-area']")
-    for onair in areas[0].select("div[class='program-title-area']"):
-        program_time = onair.select_one("div[class='program-time large']")
-        if program_time is None:
-            continue
-        program_time = program_time.select("time")
-        content['start_time'] = program_time[0]['datetime'][0:-3]
-        content['end_time'] = program_time[1]['datetime'][-8:-3]
-    content['text'] = []
-    desc = areas[0].select_one("div[class='program-description col-12']")
-    if desc is not None:
-        pp = desc.select("p")
-        if len(pp) >= 2:
-            for p in pp[1]:
-                if isinstance(p, bs4.element.NavigableString):
-                    line = str(p)
-                    if not line.startswith('「') and not line.endswith('作曲'):
-                        line = '　' + line
-                    content['text'].append(line)
+    if len(areas) >= 1:
+        for onair in areas[0].select("div[class='program-title-area']"):
+            program_time = onair.select_one("div[class='program-time large']")
+            if program_time is None:
+                continue
+            program_time = program_time.select("time")
+            content['start_time'] = program_time[0]['datetime'][0:-3]
+            content['end_time'] = program_time[1]['datetime'][-8:-3]
+        content['text'] = []
+        desc = areas[0].select_one("div[class='program-description col-12']")
+        if desc is not None:
+            pp = desc.select("p")
+            if len(pp) >= 2:
+                for p in pp[1]:
+                    if isinstance(p, bs4.element.NavigableString):
+                        line = str(p)
+                        if not line.startswith('「') and not line.endswith('作曲'):
+                            line = '　' + line
+                        content['text'].append(line)
 
     content = {}
     contents.append(content)
@@ -136,7 +137,54 @@ def find_program_2020(keywords):
 
     return all_results
 
-def create_html(all_results, output):
+def search_digest_2023(keywords):
+    time1 = datetime.datetime.now()
+    options = ChromeOptions()
+    options.add_argument('--headless')
+    driver = Chrome(options=options)
+
+    results = []
+    for keyword in keywords:
+        url = 'https://www.nhk.jp/timetable/search/?keyword={}&area=130&service=r3'.format(urllib.parse.quote(keyword))
+        driver.get(url)
+
+        sleep(4)
+
+        contents = []
+        html = driver.page_source.encode('utf-8')
+        soup = BeautifulSoup(html, "html.parser")
+        table = soup.find('table')#, class_='timetable-search-result-table')
+        if table:
+            rows = table.find_all('tr')
+            if rows:
+                i = 0
+                for row in rows:
+                    cells = row.find_all('td')
+                    content = None
+                    if cells:
+                        j = 0
+                        append = True
+                        for cell in cells:
+                            lines = cell.getText().split()
+                            for line in lines:
+                                if j in (0, 1):
+                                    if '(5分)' in line or '(10分)' in line:
+                                        append = False
+                                    if content is None:
+                                        content = {'title': line, 'text': []}
+                                    else:
+                                        content['title'] += ' ' + line
+                                if j in (2, 3):
+                                    content['text'].append(line)
+                            j += 1
+                        if append:
+                            contents.append(content)
+                    i += 1
+        results.append({'keyword': keyword, 'result': contents})
+    time2 = datetime.datetime.now()
+    return results, time1, time2
+
+def create_html(all_results, time1, time2, output):
     with open(output, mode='w') as file:
         file.write("<html>")
         file.write("<head>")
@@ -147,7 +195,7 @@ def create_html(all_results, output):
         file.write("<div class=hatena-body>")
         file.write("<div class=main>")
 
-        file.write(datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S"))
+        file.write(' - '.join(time.strftime("%Y/%m/%d %H:%M:%S") for time in (time1, time2)))
         file.write("<br>")
 
         for results in all_results:
@@ -155,8 +203,11 @@ def create_html(all_results, output):
             file.write("<div class=day>")
             for program in results['result']:
                 file.write("<h2>%s</h2>\n" % (program["title"]))
-                for line in program['text']:
-                    file.write("%s<br>\n" % (line))
+                if program['text']:
+                    for line in program['text']:
+                        file.write("%s<br>\n" % (line))
+                else:
+                    file.write("-<br>\n")
             file.write("</div>")
 
         file.write("<br>")
@@ -174,26 +225,9 @@ if __name__ == '__main__':
 
     output = '/home/pi/doc/private/python/fmnhkscrape/fmnhk.html'
 
-    urls = [{ 'title': 'ブラボー！オーケストラ', 'url': 'https://www4.nhk.or.jp/bravo/'},
-            { 'title': 'クラシックカフェ', 'url': 'https://www4.nhk.or.jp/c-cafe/'},
-            { 'title': 'ベストオブクラシック', 'url': 'https://www4.nhk.or.jp/bescla/' }]
-    contents = {}
-    for url in urls:
-        contents[url['title']] = get_program_information(url['url'])
-    results = []
-    for keyword in keywords:
-        result = {'keyword': keyword, 'result': []}
-        results.append(result)
-        for title, content in contents.items():
-            for content2 in content:
-                if 'text' in content2:
-                    if len([line for line in content2['text'] if keyword in line]) > 0:
-                        title2 = '%s %s-%s' % (title,
-                                               content2['start_time'].replace('-', '/'),
-                                               content2['end_time'].replace('-', '/'))
-                        result['result'].append({'title': title2, 'text': content2['text']})
+    results, time1, time2 = search_digest_2023(keywords)
 
-    create_html(results, output)
+    create_html(results, time1, time2, output)
 
     FTP.encoding = "utf-8"
 
