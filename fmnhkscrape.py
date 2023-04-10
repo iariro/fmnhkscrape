@@ -145,10 +145,10 @@ def search_digest_2023(keywords):
 
     results = []
     for keyword in keywords:
-        url = 'https://www.nhk.jp/timetable/search/?keyword={}&area=130&service=r3'.format(urllib.parse.quote(keyword))
+        url = 'https://www.nhk.jp/timetable/search/?keyword={}&area=130&service=g1,g2,e1,e3,s1,s2,s3,s4,s5,s6,r1,r2,r3'.format(urllib.parse.quote(keyword))
         driver.get(url)
 
-        sleep(4)
+        sleep(5)
 
         contents = []
         html = driver.page_source.encode('utf-8')
