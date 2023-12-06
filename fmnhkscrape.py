@@ -10,7 +10,7 @@ import bs4
 from bs4 import BeautifulSoup
 from ftplib import FTP
 from selenium.webdriver import Chrome, ChromeOptions
-from selenium.webdriver.common.keys import Keys
+
 
 def get_program_information(url):
     options = ChromeOptions()
@@ -68,6 +68,7 @@ def get_program_information(url):
     driver.close()
     driver.quit()
     return contents
+
 
 def find_program_2020(keywords):
     user_agent = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:47.0) Gecko/20100101 Firefox/47.0"
@@ -137,6 +138,7 @@ def find_program_2020(keywords):
 
     return all_results
 
+
 def search_digest_2023(keywords):
     time1 = datetime.datetime.now()
     options = ChromeOptions()
@@ -153,7 +155,7 @@ def search_digest_2023(keywords):
         contents = []
         html = driver.page_source.encode('utf-8')
         soup = BeautifulSoup(html, "html.parser")
-        table = soup.find('table')#, class_='timetable-search-result-table')
+        table = soup.find('table')
         if table:
             rows = table.find_all('tr')
             if rows:
@@ -175,14 +177,25 @@ def search_digest_2023(keywords):
                                     else:
                                         content['title'] += ' ' + line
                                 if j in (2, 3):
+                                    if line == 'アニメ':
+                                        append = False
                                     content['text'].append(line)
                             j += 1
                         if append:
                             contents.append(content)
                     i += 1
+        else:
+            # TODO エラー判定を実装してエラー出力する
+            # contents.append({'title': 'エラー', 'text': ['中断しました']})
+            pass
         results.append({'keyword': keyword, 'result': contents})
+
+        # TODO エラー判定を実装してbreakする
+        if table is None:
+            pass
     time2 = datetime.datetime.now()
     return results, time1, time2
+
 
 def create_html(all_results, time1, time2, output):
     with open(output, mode='w') as file:
