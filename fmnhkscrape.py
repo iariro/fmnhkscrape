@@ -145,6 +145,7 @@ def search_digest_2023(keywords):
     options.add_argument('--headless')
     driver = Chrome(options=options)
 
+    content_title_set = set()
     results = []
     for keyword in keywords:
         url = 'https://www.nhk.jp/timetable/search/?keyword={}&area=130&service=g1,g2,e1,e3,s1,s2,s3,s4,s5,s6,r1,r2,r3'.format(urllib.parse.quote(keyword))
@@ -173,12 +174,15 @@ def search_digest_2023(keywords):
                                     if '(5分)' in line or '(10分)' in line:
                                         append = False
                                     if content is None:
-                                        content = {'title': line, 'text': []}
+                                        content = {'title': line, 'text': [], 'type': None}
                                     else:
                                         content['title'] += ' ' + line
+                                    if j == 1:
+                                        content_title_set.add(content['title'])
                                 if j in (2, 3):
-                                    if line == 'アニメ':
-                                        append = False
+                                    if line in ('アニメ', 'ワイルドライフ'):
+                                        # append = False
+                                        content['type'] = 'exclude'
                                     content['text'].append(line)
                             j += 1
                         if append:
@@ -194,10 +198,13 @@ def search_digest_2023(keywords):
         if table is None:
             pass
     time2 = datetime.datetime.now()
-    return results, time1, time2
+    return results, time1, time2, content_title_set
 
 
-def create_html(all_results, time1, time2, output):
+def create_html(all_results, time1, time2, output, content_title_set):
+    content_title_use = {text: False for text in content_title_set}
+    print(content_title_use)
+
     with open(output, mode='w') as file:
         file.write("<html>")
         file.write("<head>")
@@ -215,12 +222,21 @@ def create_html(all_results, time1, time2, output):
             file.write("<h1>%s</h1>\n" % (results['keyword']))
             file.write("<div class=day>")
             for program in results['result']:
+                duplicate = content_title_use[program['title']]
                 file.write("<h2>%s</h2>\n" % (program["title"]))
                 if program['text']:
+                    exclude = program['type'] == 'exclude'
+                    if exclude:
+                        file.write("<span class='disable'>\n")
                     for line in program['text']:
                         file.write("%s<br>\n" % (line))
+                        if exclude or duplicate:
+                            break
+                    if exclude:
+                        file.write("</span>\n")
                 else:
                     file.write("-<br>\n")
+                content_title_use[program['title']] = True
             file.write("</div>")
 
         file.write("<br>")
@@ -238,9 +254,9 @@ if __name__ == '__main__':
 
     output = '/home/pi/doc/private/python/fmnhkscrape/fmnhk.html'
 
-    results, time1, time2 = search_digest_2023(keywords)
+    results, time1, time2, content_title_set = search_digest_2023(keywords)
 
-    create_html(results, time1, time2, output)
+    create_html(results, time1, time2, output, content_title_set)
 
     FTP.encoding = "utf-8"
 
