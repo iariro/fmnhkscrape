@@ -11,6 +11,7 @@ from bs4 import BeautifulSoup
 from ftplib import FTP
 from selenium.webdriver import Chrome, ChromeOptions
 
+exclude_program_list = ('アニメ', 'ワイルドライフ', 'サラメシ', '駅ピアノ「ブダペスト')
 
 def get_program_information(url):
     options = ChromeOptions()
@@ -180,8 +181,7 @@ def search_digest_2023(keywords):
                                     if j == 1:
                                         content_title_set.add(content['title'])
                                 if j in (2, 3):
-                                    if line in ('アニメ', 'ワイルドライフ'):
-                                        # append = False
+                                    if line in exclude_program_list:
                                         content['type'] = 'exclude'
                                     content['text'].append(line)
                             j += 1
