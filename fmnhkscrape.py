@@ -13,6 +13,7 @@ from selenium.webdriver import Chrome, ChromeOptions
 
 exclude_program_list = ('アニメ', 'ワイルドライフ', 'サラメシ', '駅ピアノ「ブダペスト')
 
+
 def get_program_information(url):
     options = ChromeOptions()
     options.add_argument('--headless')
@@ -146,10 +147,12 @@ def search_digest_2023(keywords):
     options.add_argument('--headless')
     driver = Chrome(options=options)
 
-    content_title_set = set()
+    content_text_set = set()
     results = []
     for keyword in keywords:
-        url = 'https://www.nhk.jp/timetable/search/?keyword={}&area=130&service=g1,g2,e1,e3,s1,s2,s3,s4,s5,s6,r1,r2,r3'.format(urllib.parse.quote(keyword))
+        url = 'https://www.nhk.jp/timetable/search/'
+        url += '?keyword={}'.format(urllib.parse.quote(keyword))
+        url += '&area=130&service=g1,g2,e1,e3,s1,s2,s3,s4,s5,s6,r1,r2,r3'
         driver.get(url)
 
         sleep(5)
@@ -178,12 +181,12 @@ def search_digest_2023(keywords):
                                         content = {'title': line, 'text': [], 'type': None}
                                     else:
                                         content['title'] += ' ' + line
-                                    if j == 1:
-                                        content_title_set.add(content['title'])
                                 if j in (2, 3):
                                     if line in exclude_program_list:
                                         content['type'] = 'exclude'
                                     content['text'].append(line)
+                                    if j == 3:
+                                        content_text_set.add(','.join(content['text']))
                             j += 1
                         if append:
                             contents.append(content)
@@ -198,12 +201,11 @@ def search_digest_2023(keywords):
         if table is None:
             pass
     time2 = datetime.datetime.now()
-    return results, time1, time2, content_title_set
+    return results, time1, time2, content_text_set
 
 
-def create_html(all_results, time1, time2, output, content_title_set):
-    content_title_use = {text: False for text in content_title_set}
-    print(content_title_use)
+def create_html(all_results, time1, time2, output, content_text_set):
+    content_text_use = {text: False for text in content_text_set}
 
     with open(output, mode='w') as file:
         file.write("<html>")
@@ -222,7 +224,10 @@ def create_html(all_results, time1, time2, output, content_title_set):
             file.write("<h1>%s</h1>\n" % (results['keyword']))
             file.write("<div class=day>")
             for program in results['result']:
-                duplicate = content_title_use[program['title']]
+                joined_program_text = ','.join(program['text'])
+                duplicate = False
+                if joined_program_text in content_text_use:
+                    duplicate = content_text_use[joined_program_text]
                 file.write("<h2>%s</h2>\n" % (program["title"]))
                 if program['text']:
                     exclude = program['type'] == 'exclude'
@@ -236,7 +241,7 @@ def create_html(all_results, time1, time2, output, content_title_set):
                         file.write("</span>\n")
                 else:
                     file.write("-<br>\n")
-                content_title_use[program['title']] = True
+                content_text_use[joined_program_text] = True
             file.write("</div>")
 
         file.write("<br>")
@@ -254,9 +259,9 @@ if __name__ == '__main__':
 
     output = '/home/pi/doc/private/python/fmnhkscrape/fmnhk.html'
 
-    results, time1, time2, content_title_set = search_digest_2023(keywords)
+    results, time1, time2, content_text_set = search_digest_2023(keywords)
 
-    create_html(results, time1, time2, output, content_title_set)
+    create_html(results, time1, time2, output, content_text_set)
 
     FTP.encoding = "utf-8"
 
