@@ -3,6 +3,7 @@
 import datetime
 from time import sleep
 import re
+import sys
 import urllib
 import urllib.parse
 import urllib.request
@@ -10,6 +11,11 @@ import bs4
 from bs4 import BeautifulSoup
 from ftplib import FTP
 from selenium.webdriver import Chrome, ChromeOptions
+import nhkapi
+
+keywords = ["交響曲", "ハイドン 交響曲", "受難曲", "ドイツ・レクイエム",
+            "オネゲル", "シェーンベルク", "ストラヴィンスキー", "ヒナステラ", "ライヒ", "ラヴェル",
+            "バルトーク", "メシアン", "ショスタコーヴィチ"]
 
 exclude_program_list = ('アニメ', 'ワイルドライフ', 'サラメシ', '駅ピアノ「ブダペスト')
 
@@ -141,7 +147,7 @@ def find_program_2020(keywords):
     return all_results
 
 
-def search_digest_2023(keywords):
+def search_digest_2023(keywords, onlyone):
     time1 = datetime.datetime.now()
     options = ChromeOptions()
     options.add_argument('--headless')
@@ -160,6 +166,7 @@ def search_digest_2023(keywords):
         contents = []
         html = driver.page_source.encode('utf-8')
         soup = BeautifulSoup(html, "html.parser")
+        print(soup)
         table = soup.find('table')
         if table:
             rows = table.find_all('tr')
@@ -193,19 +200,23 @@ def search_digest_2023(keywords):
                     i += 1
         else:
             # TODO エラー判定を実装してエラー出力する
-            # contents.append({'title': 'エラー', 'text': ['中断しました']})
+            contents.append({'title': 'エラー', 'text': ['中断しました'], 'type': None})
             pass
         results.append({'keyword': keyword, 'result': contents})
 
         # TODO エラー判定を実装してbreakする
         if table is None:
             pass
+        if onlyone:
+            break
     time2 = datetime.datetime.now()
     return results, time1, time2, content_text_set
 
 
 def create_html(all_results, time1, time2, output, content_text_set):
-    content_text_use = {text: False for text in content_text_set}
+    content_text_use = None
+    if content_text_set:
+        content_text_use = {text: False for text in content_text_set}
 
     with open(output, mode='w') as file:
         file.write("<html>")
@@ -226,7 +237,7 @@ def create_html(all_results, time1, time2, output, content_text_set):
             for program in results['result']:
                 joined_program_text = ','.join(program['text'])
                 duplicate = False
-                if joined_program_text in content_text_use:
+                if content_text_use and joined_program_text in content_text_use:
                     duplicate = content_text_use[joined_program_text]
                 file.write("<h2>%s</h2>\n" % (program["title"]))
                 if program['text']:
@@ -241,7 +252,8 @@ def create_html(all_results, time1, time2, output, content_text_set):
                         file.write("</span>\n")
                 else:
                     file.write("-<br>\n")
-                content_text_use[joined_program_text] = True
+                if content_text_use:
+                    content_text_use[joined_program_text] = True
             file.write("</div>")
 
         file.write("<br>")
@@ -253,21 +265,30 @@ def create_html(all_results, time1, time2, output, content_text_set):
 
 
 if __name__ == '__main__':
-    keywords = ["交響曲", "受難曲", "ドイツ・レクイエム",
-                "オネゲル", "シェーンベルク", "ストラヴィンスキー", "ヒナステラ", "ライヒ", "ラヴェル",
-                "バルトーク", "メシアン", "ショスタコーヴィチ"]
+    option = {}
+    for arg in sys.argv[1:]:
+        m = re.match('-(.*)=(.*)', arg)
+        if m:
+            option[m.group(1)] = m.group(2)
+    upload = option['upload'] == 'True' if 'upload' in option else True
+    onlyone = option['onlyone'] == 'True' if 'onlyone' in option else False
 
     output = '/home/pi/doc/private/python/fmnhkscrape/fmnhk.html'
 
-    results, time1, time2, content_text_set = search_digest_2023(keywords)
+    if True:
+        results, time1, time2 = nhkapi.find_program_by_api(keywords)
+        content_text_set = None
+    else:
+        results, time1, time2, content_text_set = search_digest_2023(keywords, onlyone)
 
     create_html(results, time1, time2, output, content_text_set)
 
-    FTP.encoding = "utf-8"
+    if upload:
+        FTP.encoding = "utf-8"
 
-    # FTP接続.
-    ftp = FTP("www2.gol.com", "ip0601170243", passwd="Z#5uqBpt")
+        # FTP接続.
+        ftp = FTP("www2.gol.com", "ip0601170243", passwd="Z#5uqBpt")
 
-    # ファイルのアップロード（テキスト）.
-    with open(output, "rb") as f:
-        ftp.storlines("STOR /private/web/hobby/fmnhk/fmnhk.html", f)
+        # ファイルのアップロード（テキスト）.
+        with open(output, "rb") as f:
+            ftp.storlines("STOR /private/web/hobby/fmnhk/fmnhk.html", f)
